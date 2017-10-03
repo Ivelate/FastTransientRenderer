@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
+import org.lwjgl.util.vector.Matrix4f;
 
 import core.ProgramParams;
 import material.Material;
@@ -45,5 +46,17 @@ public class SceneManager
 		float[] vertexData=m.getVertexData(OBJContents.loadObjFile(route));
 		//for(int i=0;i<vertexData.length;i++) System.out.println(vertexData[i]);
 		sceneElements.add(new ShaderGeometry(m,vertexData));
+	}
+	
+	//Yeah everything should accept a model matrix but whatever
+	public void loadNewGeometry(Material m,float[] vertexData,Matrix4f modelMatrix)
+	{
+		System.out.println("LOADING FUN");
+
+		//for(int i=0;i<vertexData.length;i++) System.out.println(vertexData[i]);
+		//vertexData=m.getVertexData(vertexData);
+		//System.out.println(vertexData.length);
+		//for(int i=0;i<vertexData.length;i++) System.out.println(vertexData[i]);
+		sceneElements.add(new ShaderGeometry(m,vertexData,modelMatrix));
 	}
 }

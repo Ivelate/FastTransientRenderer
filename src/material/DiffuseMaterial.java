@@ -36,6 +36,35 @@ public class DiffuseMaterial extends Material
 		GL20.glUniform3f(lightUniform, params.lightPos.x, params.lightPos.y, params.lightPos.z);*/
 	}
 
+	/*public float[] getVertexData(float[] onlyTris)
+	{
+		float[] data=new float[onlyTris.length*2];
+		
+		Vector3f aux1=new Vector3f();
+		Vector3f aux2=new Vector3f();
+		Vector3f aux3=new Vector3f();
+				
+		for(int i=0;i<onlyTris.length;i+=9)
+		{
+			aux1.x=onlyTris[i];aux1.y=onlyTris[i+1];aux1.z=onlyTris[i+2];
+			aux2.x=onlyTris[i+3];aux2.y=onlyTris[i+4];aux2.z=onlyTris[i+5];
+			
+			Vector3f.sub(aux2, aux1, aux3);
+			aux2.x=onlyTris[i+6];aux2.y=onlyTris[i+7];aux2.z=onlyTris[i+8];
+			Vector3f.sub(aux2, aux1, aux2);
+			
+			Vector3f.cross(aux3, aux2, aux1);
+			aux1.normalise();
+			
+			for(int j=0;j<3;j++) {
+				data[i*2 + j*6]=onlyTris[i + j*3]; data[i*2 + j*6 + 1]=onlyTris[i + j*3 + 1]; data[i*2 + j*6 + 2]=onlyTris[i + j*3 + 2];
+				data[i*2 + j*6 + 3]=aux1.x; data[i*2 + j*6 + 4]=aux1.y; data[i*2 + j*6 + 5]=aux1.z;
+			}
+		}
+		
+		return data;
+	}*/
+	
 	@Override
 	public float[] getVertexData(OBJContents objContents) {
 		int vertsize=6;

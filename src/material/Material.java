@@ -24,6 +24,7 @@ public abstract class Material
 	public abstract void setupShader(ProgramParams params);
 	
 	public abstract float[] getVertexData(OBJContents objContents);
+	//public abstract float[] getVertexData(float[] onlyTris);
 	
 	public static void vectorToBuffer(Vector3f vec,float[] buff,int offset){
 		buff[offset]=vec.x;

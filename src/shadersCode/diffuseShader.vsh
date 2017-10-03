@@ -2,6 +2,8 @@
 							
 uniform mat4 viewProjectionMatrix; //The already multiplied view and projection matrix
 
+uniform mat4 modelMatrix;
+
 
 in vec3 location;
 in vec3 normal;
@@ -11,8 +13,9 @@ out vec3 Normal;
 
 void main()
 {
-	Location=location;
+	vec4 locModel=modelMatrix * vec4(location,1);
+	Location=locModel.xyz;
 	Normal=normal;
 	
-	gl_Position=viewProjectionMatrix * vec4(location.xyz,1);
+	gl_Position=viewProjectionMatrix * locModel;
 }

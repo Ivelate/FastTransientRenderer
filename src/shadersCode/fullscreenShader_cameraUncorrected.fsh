@@ -20,6 +20,8 @@ uniform int lightRes_y;
 uniform mat4 lightVP;
 uniform vec3 lightPosUniform;
 
+uniform vec3 camPosUniform;
+
 uniform float t0;
 uniform float tdelta;
 uniform int tres;
@@ -58,8 +60,11 @@ void main()
 	}
 	
 	//SHADING
+	float distToCamera=distance(locationWorld,camPosUniform);
 	vec3 lightIncidenceVector=normalize(lightPosUniform-locationWorld);
 	float distLightWorld=distance(lightPosUniform,locationWorld);
+	distLightWorld+=distToCamera;
+	
 	float cosLightNormal=max(0,dot(lightIncidenceVector,normalCam));
 	colorsete=cosLightNormal*colorsete*attenuation / (distLightWorld*distLightWorld);
 
@@ -85,6 +90,7 @@ void main()
 			
 			float dist=distance(locationWorld,posLight);
 			float distAttenuation=dist*dist;
+			dist+=distToCamera;
 			dist+=distance(posLight,lightPosUniform);
 			if(dist<minDistThreshold)dist=minDistThreshold;
 			

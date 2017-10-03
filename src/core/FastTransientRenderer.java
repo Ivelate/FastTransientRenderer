@@ -84,6 +84,8 @@ import geometry.SceneManager;
 import material.DiffuseMaterial;
 import material.Material;
 import shaders.FullscreenShader;
+import shaders.FullscreenShaderCameraCorrected;
+import shaders.FullscreenShaderCameraUncorrected;
 import shaders.ShaderLibrary;
 import shaders.SolidAnglePrecomputationShader;
 import shaders.VideoPlayShader;
@@ -167,11 +169,11 @@ public class FastTransientRenderer
 	{
 		try 
 		{
-			File imageFile=new File(imageName+"."+params.IMAGE_FORMAT);
+			File imageFile=new File(imageName+"."+params.STEADY_IMAGE_FORMAT);
 			int repeatedNames=0;
 			while(imageFile.exists()){
 				repeatedNames++;
-				imageFile=new File(imageName+"_"+repeatedNames+"."+params.IMAGE_FORMAT);
+				imageFile=new File(imageName+"_"+repeatedNames+"."+params.STEADY_IMAGE_FORMAT.toLowerCase());
 			}
 			this.transientStorage.saveStorageSteadyImage(imageFile);
 		} catch (IOException e) {
@@ -194,8 +196,8 @@ public class FastTransientRenderer
 				repeatedNames++;
 				videoFile=new File(videoName+"_"+repeatedNames+".mp4");
 			}
-			this.transientStorage.saveStorageAsImageStreaks(imgFolder);
-			this.transientStorage.createVideo(imgFolder,videoFile);
+			this.transientStorage.saveStorageAsImageStreaks(imgFolder,params.TEMPORAL_STREAKS,params.IMAGE_NAME);
+			if(!this.params.IMAGE_FORMAT.equals("hdr")) this.transientStorage.createVideo(imgFolder,videoFile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -411,9 +413,12 @@ public class FastTransientRenderer
 
 		ShaderLibrary.init();
 		this.sceneManager=new SceneManager(params);
+		
 		try {
-			for(int i=0;i<params.routesUsed.size();i++){
-				this.sceneManager.loadNewGeometry(params.materialsUsed.get(i), params.routesUsed.get(i));
+			for(int i=0;i<params.materialsUsed.size();i++){
+				boolean useDirectMesh= params.overrideObjectMesh.size()>i&&params.overrideObjectMesh.get(i)!=null;
+				if(useDirectMesh) this.sceneManager.loadNewGeometry(params.materialsUsed.get(i),params.overrideObjectMesh.get(i),params.overrideObjectMeshModelMatrixes.get(i));
+				else this.sceneManager.loadNewGeometry(params.materialsUsed.get(i),params.routesUsed.get(i));
 			}
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -423,7 +428,7 @@ public class FastTransientRenderer
 		this.sceneManager.loadIntoGPU();
 		
 		this.quad=new Quad();
-		this.fullscreenShader=new FullscreenShader();
+		this.fullscreenShader=params.CORRECT_CAMERA_DIST?new FullscreenShaderCameraCorrected():new FullscreenShaderCameraUncorrected();
 		this.videoPlayShader=new VideoPlayShader();
 		this.solidAnglePrecompShader=new SolidAnglePrecomputationShader();
 		
@@ -481,6 +486,9 @@ public class FastTransientRenderer
 			
 			GL20.glUniform1f(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"scale"),1f/params.BATCHING);
 			GL20.glUniform2f(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"offset"),(1f/params.BATCHING)*x,(1f/params.BATCHING)*y);
+			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"directLight"),params.DIRECT_LIGHT?1:0);
+			if(!this.params.CORRECT_CAMERA_DIST) GL20.glUniform3f(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"camPosUniform"),
+					params.camPos.x, params.camPos.y, params.camPos.z);
 			
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"camColor"),0);
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"camPosition"),1);
@@ -490,7 +498,7 @@ public class FastTransientRenderer
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"lightDepth"),5);
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"camNormal"),6);
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"lightNormal"),7);
-	
+			
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"lightRes_x"),params.LIGHT_RES_X);
 			glUniform1i(GL20.glGetUniformLocation(this.fullscreenShader.getID(),"lightRes_y"),params.LIGHT_RES_Y);
 			
@@ -621,8 +629,29 @@ public class FastTransientRenderer
 				case "JPG":
 					params.IMAGE_FORMAT="JPEG";
 					break;
+				case "HDR":
+					params.IMAGE_FORMAT="HDR";
+					break;
 				default:
-					throw new IncorrectArgumentsException("Unsupported image format - only PNG and JPEG supported by now");
+					throw new IncorrectArgumentsException("Unsupported image format - only PNG, JPEG or HDR supported by now");
+				}
+				break;
+			case "-steadyImageFormat":
+				String sformat=args[++i].toUpperCase();
+				switch(sformat)
+				{
+				case "PNG":
+					params.STEADY_IMAGE_FORMAT="PNG";
+					break;
+				case "JPEG":
+				case "JPG":
+					params.STEADY_IMAGE_FORMAT="JPEG";
+					break;
+				case "HDR":
+					params.STEADY_IMAGE_FORMAT="HDR";
+					break;
+				default:
+					throw new IncorrectArgumentsException("Unsupported image format - only PNG, JPEG or HDR supported by now");
 				}
 				break;
 			case "-videoName":

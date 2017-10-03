@@ -12,6 +12,9 @@ import java.nio.FloatBuffer;
 
 import javax.imageio.ImageIO;
 
+import com.github.ivelate.JavaHDR.HDREncoder;
+import com.github.ivelate.JavaHDR.RGBE;
+
 import core.ProgramParams;
 import util.FFMpegUtil;
 import util.ReadStream;
@@ -25,6 +28,7 @@ public abstract class TransientStorage
 	
 	private float intensity_gammacorrection;
 	private String imageFormat="";
+	private String steadyImageFormat="";
 	
 	public TransientStorage(int xres,int yres,int tres,int channels,ProgramParams params)
 	{
@@ -35,6 +39,7 @@ public abstract class TransientStorage
 		
 		this.intensity_gammacorrection=params.INTENSITY_GAMMA_CORRECTION;
 		this.imageFormat=params.IMAGE_FORMAT;
+		this.steadyImageFormat=params.STEADY_IMAGE_FORMAT;
 	}
 	
 	/**
@@ -69,42 +74,60 @@ public abstract class TransientStorage
 	 */
 	public void saveStorageSteadyImage(File imageFile) throws IOException
 	{		
-		BufferedImage outImage = new BufferedImage(xres, yres,
-				                    BufferedImage.TYPE_INT_RGB);
-		float maxIntensity=0;
-		//Find maximum intensity
-		for(int x=0;x<xres;x++) for(int y=0;y<yres;y++) for(int c=0;c<3;c++)
+		if(this.steadyImageFormat.equals("HDR"))
 		{
-			float currentIntensity=getImageData(x,y,c);
-			if(currentIntensity>maxIntensity) maxIntensity=currentIntensity;
+			byte bdata[]=new byte[xres*yres*4];
+			int scanline=xres;
+			int scanlineoff=0;
+			for(int y=0;y<yres;y++)
+			{
+				for(int x=0;x<xres;x++) 
+				{
+					RGBE.float2rgbe(bdata, getImageData(x,yres-y-1,0),getImageData(x,yres-y-1,1),getImageData(x,yres-y-1,2), scanlineoff+x, scanline); //Contiguous in the scanline
+				}
+				scanlineoff+=scanline*4;
+			}
+			HDREncoder.writeHDR(bdata, xres, yres, true, imageFile);
 		}
-
-		float gammaIntensityCorrection=1/maxIntensity; //maxIntensity gamma will equal one.
-		for(int x=0;x<xres;x++) for(int y=0;y<yres;y++)
+		else
 		{
-			int r,g,b;
-
-			r=(int)(255*applyGamma(getImageData(x,y,0),gammaIntensityCorrection));
-			g=(int)(255*applyGamma(getImageData(x,y,1),gammaIntensityCorrection));
-			b=(int)(255*applyGamma(getImageData(x,y,2),gammaIntensityCorrection));
-
-			int c=r<<16 | g << 8 | b;
-			
-			if(c<0) System.out.println(c);
-			outImage.setRGB(x, yres-y-1, c);
-		}
+			BufferedImage outImage = new BufferedImage(xres, yres,
+					                    BufferedImage.TYPE_INT_RGB);
+			float maxIntensity=0;
+			//Find maximum intensity
+			for(int x=0;x<xres;x++) for(int y=0;y<yres;y++) for(int c=0;c<3;c++)
+			{
+				float currentIntensity=getImageData(x,y,c);
+				if(currentIntensity>maxIntensity) maxIntensity=currentIntensity;
+			}
 	
-
-		System.out.println("Saving image "+imageFile.getName());
-		ImageIO.write(outImage, this.imageFormat, imageFile);
+			float gammaIntensityCorrection=1/maxIntensity; //maxIntensity gamma will equal one.
+			for(int x=0;x<xres;x++) for(int y=0;y<yres;y++)
+			{
+				int r,g,b;
+	
+				r=(int)(255*applyGamma(getImageData(x,y,0),gammaIntensityCorrection));
+				g=(int)(255*applyGamma(getImageData(x,y,1),gammaIntensityCorrection));
+				b=(int)(255*applyGamma(getImageData(x,y,2),gammaIntensityCorrection));
+	
+				int c=r<<16 | g << 8 | b;
+				
+				if(c<0) System.out.println(c);
+				outImage.setRGB(x, yres-y-1, c);
+			}
+		
+	
+			System.out.println("Saving image "+imageFile.getName());
+			ImageIO.write(outImage, this.steadyImageFormat, imageFile);
+		}
 	}
 	
 	/**
 	 * Saves the contents of the storage into a folder of images
 	 */
-	public void saveStorageAsImageStreaks(File file) throws IOException
+	public void saveStorageAsImageStreaks(File file,boolean temporalStreaks,String imagesName) throws IOException
 	{
-		saveStorageAsImageStreaks(file,null);
+		saveStorageAsImageStreaks(file,null,temporalStreaks,imagesName);
 	}
 	
 	/**
@@ -112,50 +135,86 @@ public abstract class TransientStorage
 	 */
 	public void saveStorageAsImageStreaks(OutputStream stream) throws IOException
 	{
-		saveStorageAsImageStreaks(null,stream);
+		saveStorageAsImageStreaks(null,stream,false,"");
 	}
 	
-	private void saveStorageAsImageStreaks(File directory,OutputStream stream) throws IOException
+	private void saveStorageAsImageStreaks(File directory,OutputStream stream,boolean temporalStreaks,String imagesName) throws IOException
 	{
+		if(directory!=null&&!directory.exists()) directory.mkdir();
+		
+		int xres=temporalStreaks?this.tres:this.xres;
+		int yres=temporalStreaks?this.xres:this.yres;
+		int tres=temporalStreaks?this.yres:this.tres;
+		String imageName=imagesName.isEmpty()?(temporalStreaks?"STREAK":"IMG"):imagesName;
+		
 		//BufferedOutputStream bstream=new BufferedOutputStream(stream);
 		for(int t=0;t<tres;t++)
-		{			
-			BufferedImage outImage =
-					  new BufferedImage(xres, yres,
-					                    BufferedImage.TYPE_INT_RGB);
-
-			for(int x=0;x<xres;x++) for(int y=0;y<yres;y++)
+		{	
+			if(this.imageFormat.equals("HDR"))
 			{
-				int r,g,b;
-				if(imageGammaCorrected()){
-					r=(int)(255*getData(x,y,t,0));
-					g=(int)(255*getData(x,y,t,1));
-					b=(int)(255*getData(x,y,t,2));
+				byte bdata[]=new byte[xres*yres*4];
+				int scanline=xres;
+				int scanlineoff=0;
+				for(int y=0;y<yres;y++)
+				{
+					for(int x=0;x<xres;x++) 
+					{
+						int tt=temporalStreaks?x:t;
+						int tx=temporalStreaks?y:x;
+						int ty=temporalStreaks?t:y;
+						//System.out.println(tx+" "+(this.yres-ty-1)+" "+tt+" "+scanline+" "+scanlineoff);
+						RGBE.float2rgbe(bdata, getData(tx,this.yres-ty-1,tt,0),getData(tx,this.yres-ty-1,tt,1),getData(tx,this.yres-ty-1,tt,2), scanlineoff+x, scanline); //Contiguous in the scanline
+					}
+					scanlineoff+=scanline*4;
 				}
-				else{
-					r=(int)(255*applyGamma(getData(x,y,t,0)));
-					g=(int)(255*applyGamma(getData(x,y,t,1)));
-					b=(int)(255*applyGamma(getData(x,y,t,2)));
-				}
-				int c=r<<16 | g << 8 | b;
-				
-				if(c<0) System.out.println(c);
-				outImage.setRGB(x, yres-y-1, c);
-			}
-		
-			if(directory!=null)
-			{
 				String ts=t+"";
 				while(ts.length()<(tres+"").length()) ts="0"+ts;
-				File f=new File(directory,"IMG_"+ts+"."+this.imageFormat);
+				File f=new File(directory,imageName+"_"+ts+"."+this.imageFormat.toLowerCase());
 				System.out.println("Saving image "+f.getName());
-				ImageIO.write(outImage, this.imageFormat, f);
+				HDREncoder.writeHDR(bdata, xres, yres, true, f);
 			}
-			else if(stream!=null)
+			else
 			{
-				//To pipe!
-				System.out.println("Piping image "+t+"/"+tres);
-				ImageIO.write(outImage,this.imageFormat, stream); 
+				BufferedImage outImage =
+						  new BufferedImage(xres, yres,
+						                    BufferedImage.TYPE_INT_RGB);
+	
+				for(int x=0;x<xres;x++) for(int y=0;y<yres;y++)
+				{
+					int tx=temporalStreaks?y:x;
+					int ty=temporalStreaks?x:y;
+					int tt=temporalStreaks?x:t;
+					int r,g,b;
+					if(imageGammaCorrected()){
+						r=(int)(255*getData(tx,ty,tt,0));
+						g=(int)(255*getData(tx,ty,tt,1));
+						b=(int)(255*getData(tx,ty,tt,2));
+					}
+					else{
+						r=(int)(255*applyGamma(getData(tx,ty,tt,0)));
+						g=(int)(255*applyGamma(getData(tx,ty,tt,1)));
+						b=(int)(255*applyGamma(getData(tx,ty,tt,2)));
+					}
+					int c=r<<16 | g << 8 | b;
+					
+					if(c<0) System.out.println(c);
+					outImage.setRGB(x, yres-y-1, c);
+				}
+			
+				if(directory!=null)
+				{
+					String ts=t+"";
+					while(ts.length()<(tres+"").length()) ts="0"+ts;
+					File f=new File(directory,imageName+"_"+ts+"."+this.imageFormat);
+					System.out.println("Saving image "+f.getName());
+					ImageIO.write(outImage, this.imageFormat, f);
+				}
+				else if(stream!=null)
+				{
+					//To pipe!
+					System.out.println("Piping image "+t+"/"+tres);
+					ImageIO.write(outImage,this.imageFormat, stream); 
+				}
 			}
 		}
 	}
@@ -192,7 +251,7 @@ public abstract class TransientStorage
 	 */
 	public Process createVideoAsync(File videoFile)
 	{
-		System.out.println("Creating video asynchronously (EXPERIMENTAL)");
+		System.out.println("Creating video asynchronously");
 		Process p=null;
 		 try
 		 {

@@ -9,11 +9,11 @@ import org.lwjgl.opengl.GL11;
 /**
  * Used to store each poly into the 3D volume considering the time travel of the light. This is the fullscreen deferred shader. 
  */
-public class FullscreenShader extends SimpleShaderProgram{
+public abstract class FullscreenShader extends SimpleShaderProgram{
 
-	public FullscreenShader()
+	public FullscreenShader(String fsh)
 	{
-		super("/shadersCode/fullscreenShaderAdjustable.vsh","/shadersCode/fullscreenShader.fsh",true);
+		super("/shadersCode/fullscreenShaderAdjustable.vsh",fsh,true);
 	}
 	
 	/**
