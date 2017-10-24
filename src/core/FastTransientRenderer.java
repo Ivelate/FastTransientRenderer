@@ -153,13 +153,16 @@ public class FastTransientRenderer
 		
 		//Save steady state image if specified
 		if(params.SAVE_STEADY_IMAGE) saveSteadyImage(params.STEADY_IMAGE_NAME);
-		//Save video
-		long tii=System.currentTimeMillis();
 		
-		if(params.SAVE_IMAGES)saveVideo(params.VIDEO_NAME);
-		else saveVideoAsync(params.VIDEO_NAME);
+		//Save video		
+		if(!params.BLOCK_IO)
+		{
+			long tii=System.currentTimeMillis();
+			if(params.SAVE_IMAGES)saveVideo(params.VIDEO_NAME);
+			else saveVideoAsync(params.VIDEO_NAME);
 		
-		System.out.println("Time to save video: "+(System.currentTimeMillis()-tii)+"ms");
+			System.out.println("Time to save video: "+(System.currentTimeMillis()-tii)+"ms");
+		}
 	}
 	
 	/**
@@ -556,6 +559,14 @@ public class FastTransientRenderer
 		Display.destroy();
 	}
 	
+	/**
+	 * To be used in code in applications which need the storage data after the normal Fast Transient Renderer execution flow
+	 */
+	public TransientStorage getStorage()
+	{
+		return this.transientStorage;
+	}
+	
 	
 	
 	/********************************************   MAIN   *************************************************/
@@ -603,13 +614,16 @@ public class FastTransientRenderer
 				params.BATCHING=Integer.parseInt(args[++i]);
 				break;
 			case "-tdelta":
-				params.TDELTA=Integer.parseInt(args[++i]);
+				params.TDELTA=Float.parseFloat(args[++i]);
 				break;
 			case "-t0":
-				params.T0=Integer.parseInt(args[++i]);
+				params.T0=Float.parseFloat(args[++i]);
 				break;
 			case "-saveImages":
 				params.SAVE_IMAGES=true;
+				break;
+			case "-imageName":
+				params.IMAGE_NAME=args[++i];
 				break;
 			case "-saveSteadyImage":
 				params.SAVE_STEADY_IMAGE=true;
@@ -679,7 +693,20 @@ public class FastTransientRenderer
 			case "-lightcamznearfar":
 				params.lightznear=Float.parseFloat(args[++i]);
 				params.lightzfar=Float.parseFloat(args[++i]);
-				break;	
+				break;
+				
+			case "-disableDirectLight":
+				params.DIRECT_LIGHT=false;
+				break;
+				
+			case "-considerCameraDist":
+				params.CORRECT_CAMERA_DIST=false;
+				break;
+				
+			case "-saveImagesAsStreaks":
+				params.SAVE_IMAGES=true;
+				params.TEMPORAL_STREAKS=true;
+				break;
 				
 			}
 		}

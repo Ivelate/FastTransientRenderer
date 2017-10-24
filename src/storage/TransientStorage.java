@@ -65,7 +65,7 @@ public abstract class TransientStorage
 	
 	protected abstract void insertIntoStorage(float data,int x,int y, int t,int c);
 	
-	protected abstract float getData(int x,int y,int t,int c);
+	public abstract float getData(int x,int y,int t,int c);
 	
 	protected abstract float getImageData(int x,int y,int c); //Gets the data from the steady image
 	
@@ -307,5 +307,22 @@ public abstract class TransientStorage
 		}
 	
 		ImageIO.write(outImage, "PNG", file);
+	}
+	
+	public int getResX()
+	{
+		return this.xres;
+	}
+	public int getResY()
+	{
+		return this.yres;
+	}
+	public int getResT()
+	{
+		return this.tres;
+	}
+	public int getChannels()
+	{
+		return this.channels;
 	}
 }

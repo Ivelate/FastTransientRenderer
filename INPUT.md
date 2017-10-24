@@ -42,8 +42,9 @@ Camera parameters
    Light camera projection matrix znear and zfar. By default, 0.1 and 10
 
 * -lightres |x: int| |y: int| 
-   width and height of the light camera image, in pixels. Note that the light camera doesn't have a temporal resolution
-
+   width and height of the light camera image, in pixels. Note that the light camera doesn't have a temporal resolution   
+  
+  
 Video parameters
 ---------------
 
@@ -59,6 +60,14 @@ By default the images are saved in PNG format (.png), and the videos are saved i
 * -saveImages 
    Each individual image will be saved into an imgs/ folder, overriding current images if needed. Please note that this option is slower than
    storing directly the video.
+   
+* -saveImagesAsStreaks
+   Each individual image will be saved into an imgs/ folder, but altering the normal image order so the x image coordinate is the temporal dimension, the y image coordinate is the x coordinate
+   and each stored image correspond to a single y coordinate.
+
+* -imageName |name: string|
+   Initial name of each individual frame image stored in imgs/ . After this initial name a modifier will be added in function of the current frame,
+   which will look like <name>_<frame>
 
 * -imageFormat |format: string|
    Accepts either PNG or JPG. Currently HDR is unsupported.
@@ -68,7 +77,7 @@ By default the images are saved in PNG format (.png), and the videos are saved i
    
 * -steadyImageName |name: string|
    Name of the output steady image. If it already exists, an identifier will be added at its end (_1, _2 etc.)
-
+     
 
 Transient parameters
 ---------------------
@@ -78,7 +87,15 @@ Transient parameters
 
 * -t0 |t: float|
    Specifies the initial video time
+   
+* -disableDirectLight
+   Stores only the indirect light in the video and images. Considers all direct light as 0
+   
+* -considerCameraDist
+   By default, distance from the world to the camera is considered as 0. With this arg, that distance is accounted too
+   
 
+   
 Others
 ---------------------
 * -model |obj_route: string| |r: float| |g: float| |b: float|

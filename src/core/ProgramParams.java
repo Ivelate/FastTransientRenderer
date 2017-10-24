@@ -62,6 +62,7 @@ public class ProgramParams
 	//NON-USER USABLE PARAMS (To be directly set in-code)
 	public List<float[]> overrideObjectMesh=new ArrayList<float[]>();
 	public List<Matrix4f> overrideObjectMeshModelMatrixes=new ArrayList<Matrix4f>();
+	public boolean BLOCK_IO=false; //If true, no video will be stored
 	
 	
 	

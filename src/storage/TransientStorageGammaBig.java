@@ -38,7 +38,7 @@ public class TransientStorageGammaBig extends TransientStorage
 	}
 
 	@Override
-	protected float getData(int x, int y, int t,int c) {
+	public float getData(int x, int y, int t,int c) {
 		if(c==3) return 0; //4th channel = alpha = 1
 		return (storage[t][getNormalizedIndex(x,y,c)]&0xFF)/255f;
 	}
